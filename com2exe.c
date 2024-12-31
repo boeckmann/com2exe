@@ -38,6 +38,7 @@ int main( int argc, char *argv[] )
 	char *in_fn = NULL, *out_fn = NULL;
 	FILE *in_f = NULL, *out_f = NULL;
 	unsigned long in_size = 0;
+	int plain_copy = 0;
 
 	int result = -1;
 
@@ -72,7 +73,7 @@ int main( int argc, char *argv[] )
 		strcat( out_fn, "exe" );
 	}
 
-	{ /* open input and output files */
+	{ /* open input file and test if already MZ */
 		in_f = fopen( in_fn, "rb" );
 		if ( in_f == NULL ) {
 			puts( "error opening input file" );
@@ -83,7 +84,22 @@ int main( int argc, char *argv[] )
 		fseek( in_f, 0, SEEK_END );
 		in_size = (unsigned long)ftell( in_f );
 		fseek( in_f, 0, SEEK_SET );
-		
+
+		if ( in_size >= 2 ) {
+			/* check if not already an .EXE */
+			if ( fread( buf, 2, 1, in_f ) != 1 ) {
+				puts( "can not read input file" );
+				result = 7;
+				goto bye;
+			}
+			fseek( in_f, 0, SEEK_SET );
+			if ( buf[0] == 'M' || buf[1] == 'Z' ) {
+				puts( "already a MZ-executable, making plain copy" );
+				plain_copy = 1;
+			}
+		}
+	}
+	{	/* open output file */
 		out_f = fopen( out_fn, "wb" );
 		if ( out_f == NULL ) {
 			puts( "error opening output file" );
@@ -92,11 +108,11 @@ int main( int argc, char *argv[] )
 		}
 	}
 
-	{ /* write header */
+	if ( !plain_copy ) { /* write header */
 		header.sig[0] = 'M';
 		header.sig[1] = 'Z';
 		header.pages_count = ( (in_size + sizeof(MZHEADER) + 511) >> 9 );
-		header.bytes_last_page = in_size & 0x1ff;
+		header.bytes_last_page = (in_size + sizeof(MZHEADER)) & 0x1ff;
 		header.header_para_size = (sizeof(MZHEADER) + 15) >> 4;
 	
 		if ( in_size < 0xff00 ) {
