@@ -95,10 +95,16 @@ int main( int argc, char *argv[] )
 	{ /* write header */
 		header.sig[0] = 'M';
 		header.sig[1] = 'Z';
-		header.pages_count = (in_size + 511) >> 9;
-		header.bytes_last_page = in_size >> 9;
+		header.pages_count = ( (in_size + sizeof(MZHEADER) + 511) >> 9 );
+		header.bytes_last_page = in_size & 0x1ff;
 		header.header_para_size = (sizeof(MZHEADER) + 15) >> 4;
 	
+		if ( in_size < 0xff00 ) {
+			/* make sure at least 64K are reserved for the program, as we
+			   unconditionally set SP to 0xfffe. The 0xff00 = 0x10000 - 0x100
+			   comes from the PSP that contributes to the size */
+			header.min_paras = (0xff00 - in_size + 15) >> 4;
+		}
 		header.max_paras = 0xffff;
 		header.start_ss = 0xfff0;
 		header.start_sp = 0xfffe;
