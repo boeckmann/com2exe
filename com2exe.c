@@ -8,6 +8,7 @@ Distributed under the ISC license.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #pragma pack(push, 1)
 
@@ -71,6 +72,12 @@ int main( int argc, char *argv[] )
 		p = out_fn + strlen( out_fn ) - 1;
 		while ( *p != '.' ) *p-- = '\0';
 		strcat( out_fn, "exe" );
+
+		if ( strcasecmp( in_fn, out_fn ) == 0 ) {
+			puts( "will not overwrite file!" );
+			result = 8;
+			goto bye;
+		}
 	}
 
 	{ /* open input file and test if already MZ */
